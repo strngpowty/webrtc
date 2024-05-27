@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<body>
+<select id="videoSource"></select>
+<video id="video" playsinline="" autoplay=""></video>
+
+<script>
+
+const videoElement = document.querySelector('video');
+const videoSelect = document.querySelector('select#videoSource');
+
+// Function to populate video input devices
+function gotDevices(deviceInfos) {
+  const values = videoSelect.value;
+  while (videoSelect.firstChild) {
+    videoSelect.removeChild(videoSelect.firstChild);
+  }
+  for (let i = 0; i !== deviceInfos.length; ++i) {
+    const deviceInfo = deviceInfos[i];
+    if (deviceInfo.kind === 'videoinput') {
+      const option = document.createElement('option');
+      option.value = deviceInfo.deviceId;
+      option.text = deviceInfo.label || `camera ${videoSelect.length + 1}`;
+      videoSelect.appendChild(option);
+    }
+  }
+  if (Array.prototype.slice.call(videoSelect.childNodes).some(n => n.value === values)) {
+    videoSelect.value = values;
+  }
+}
+
+// Function to handle the stream
+function gotStream(stream) {
+  window.stream = stream; // make stream available to console
+  videoElement.srcObject = stream;
+  // Refresh button list in case labels have become available
+  return navigator.mediaDevices.enumerateDevices().then(gotDevices);
+}
+
+// Function to handle errors
+function handleError(error) {
+  console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+}
+
+// Function to start the video stream
+function start() {
+  if (window.stream) {
+    window.stream.getTracks().forEach(track => {
+      track.stop();
+    });
+  }
+  const videoSource = videoSelect.value;
+  const constraints = {
+    video: {deviceId: videoSource ? {exact: videoSource} : undefined}
+  };
+  navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
+}
+
+navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+
+videoSelect.onchange = start;
+
+start();
+
+</script>
+
+</body>
+</html>
+
+
